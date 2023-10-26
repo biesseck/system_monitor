@@ -1,0 +1,15 @@
+
+wandb:
+  entity: 'menotti_servers_monitoring'
+
+  project: '_monitoring'
+  api_key: 'd7664714c72bd594a957381812da450279f80f66'
+  suffix_run_name: None
+  using_wandb: True
+  log_all: True
+  save_artifacts: True
+
+  # resume: True
+  resume: False
+
+  notes: ''

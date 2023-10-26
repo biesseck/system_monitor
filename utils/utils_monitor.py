@@ -3,6 +3,7 @@ import psutil
 import socket
 import time
 from nvitop import Device
+import subprocess
 
 
 ubuntu_modules = ['drivetemp']    # tested on Ubuntu 22.04 LTS
@@ -16,7 +17,11 @@ def load_necessary_modules(system_info, verbose=True):
             cmd = f'sudo modprobe -v {ubuntu_module}'
             if verbose:
                 print(cmd)
-            # TODO: run cmd
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            (output, err) = p.communicate()
+            p_status = p.wait()
+            if p_status != 0:
+                raise Exception(f'Error when loading module \'{ubuntu_module}\'')
     else:
         raise Exception(f'Sorry, system_monitor is not implemented for the system \'{sysname}\' yet!')
 

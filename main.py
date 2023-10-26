@@ -2,12 +2,16 @@ import sys, os
 import time
 import numpy as np
 import argparse
+import wandb
+from datetime import datetime
 
 from utils import utils_monitor as um
+from config.configs import EasyConfig
 
 
 def parse_args():
     parser = argparse.ArgumentParser(prog='system_monitor')
+    parser.add_argument('--config', default='config/default_config.yaml', type=str)
     parser.add_argument('--interval', default=1.0, type=float)
     parser.add_argument('--verbose', action='store_true')
     args = parser.parse_args()
@@ -51,12 +55,64 @@ def print_memory_info(memory_info):
     print()
 
 
-def main(args):
+def init_wandb_logger(cfg, sys_info):
+    wandb_logger = None
+    if cfg.wandb.using_wandb:
+        wandb.login(key=cfg.wandb.api_key)
+        project_name = sys_info['nodename'] + cfg.wandb.project if cfg.wandb.project.startswith('_') else sys_info['nodename'] + '_' + cfg.wandb.project
+        run_name = 'start_' + datetime.now().strftime("%Y-%m-%d_%H:%M")
+        wandb_logger = wandb.init(
+                entity = cfg.wandb.entity, 
+                project = project_name,
+                sync_tensorboard = True,
+                resume=cfg.wandb.resume,
+                name = run_name,
+                notes = cfg.wandb.notes) if cfg.wandb.log_all else None
+    return wandb_logger
+
+
+def log_wandb(wandb_logger, dict_info):
+    sys_info, cpu_info, system_temp_info, gpu_info, memory_info = \
+        dict_info['sys_info'], dict_info['cpu_info'], dict_info['system_temp_info'], dict_info['gpu_info'], dict_info['memory_info'], 
+
+    # log CPU info
+    for i, key in enumerate(list(cpu_info.keys())):
+        wandb_logger.log({
+            'cpu_info/'+str(key): cpu_info[key],
+        })
+    
+    # log TEMPERATURES info
+    for i, key in enumerate(list(system_temp_info.keys())):
+        for j, item in enumerate(system_temp_info[key]):
+            wandb_logger.log({
+                'system_temp_info/'+str(key)+'.'+str(item.label): item.current,
+            })
+    
+    # log GPU info
+    for i, key_gpu in enumerate(list(gpu_info.keys())):
+        gpu = gpu_info[key_gpu]
+        wandb_logger.log({
+            'gpu_info/'+str(key_gpu)+'.temperature': gpu['temperature'],
+            'gpu_info/'+str(key_gpu)+'.gpu_utilization': gpu['gpu_utilization'],
+        })
+    
+    for i, key in enumerate(list(memory_info.keys())):
+        # print('  %s: %.1fGB' % (key, memory_info[key]), end='')
+        wandb_logger.log({
+            'memory_info/'+str(key): memory_info[key],
+        })
+
+
+
+def main(args, cfg):
     sys_info = um.get_kernel_info()
     print_generic_dict(sys_info, dict_name='sys_info', end='---------------')
 
     um.load_necessary_modules(sys_info, verbose=True)
     print('---------------')
+
+    print('Initializing wand...')
+    wandb_logger = init_wandb_logger(cfg, sys_info)
 
     while True:
         cpu_info = um.get_cpu_info(args.interval)
@@ -67,13 +123,19 @@ def main(args):
 
         gpu_info = um.get_gpu_info()
         print_gpu_info(gpu_info)
-        
+
         memory_info = um.get_memory_info()
         print_memory_info(memory_info)
 
-        # log_wandb(cpu_info, 'cpu_info')
-        # log_wandb(gpu_info, 'gpu_info')
-        # log_wandb(memory_info, 'memory_info')
+
+        dict_info = {
+            'sys_info': sys_info,
+            'cpu_info': cpu_info,
+            'system_temp_info': system_temp_info,
+            'gpu_info': gpu_info,
+            'memory_info': memory_info
+        }
+        log_wandb(wandb_logger, dict_info)
 
         print('---------------')
         time.sleep(args.interval)
@@ -81,7 +143,8 @@ def main(args):
 
 
 if __name__ == '__main__':
-
     args = parse_args()
+    cfg = EasyConfig()
+    cfg.load(args.config, recursive=True)
 
-    main(args)
+    main(args, cfg)
