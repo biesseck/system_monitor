@@ -39,11 +39,18 @@ def get_kernel_info():
 
 
 def get_memory_info():
+    memory_info = psutil.virtual_memory()
+    swap_info = psutil.swap_memory()
+    unit = 1024.0 ** 3   # GB
     return {
-        'total_memory': psutil.virtual_memory().total / (1024.0 ** 3),
-        'available_memory': psutil.virtual_memory().available / (1024.0 ** 3),
-        'used_memory': psutil.virtual_memory().used / (1024.0 ** 3),
-        'memory_percentage': psutil.virtual_memory().percent
+        'total_memory': memory_info.total / unit,
+        'available_memory': memory_info.available / unit,
+        'used_memory': memory_info.used / unit,
+        'memory_percent': memory_info.percent,
+        'swap_total': swap_info.total / unit,
+        'swap_used': swap_info.used / unit,
+        'swap_free': swap_info.free / unit,
+        'swap_percent': swap_info.percent
     }
 
 

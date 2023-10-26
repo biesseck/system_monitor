@@ -38,17 +38,16 @@ def print_system_temp_info(temp_info):
 
 
 def print_gpu_info(gpu_info):
-    # print('GPU  -')
-    # for i, key_gpu in enumerate(list(gpu_info.keys())):
-    #     gpu = gpu_info[key_gpu]
-    #     print(f'   {key_gpu}')
-    #     for j, key_item in enumerate(list(gpu.keys())):
-    #         value = gpu[key_item]
-    #         print(f'   {key_item}: {value}')
-    #     print()
     for i, key_gpu in enumerate(list(gpu_info.keys())):
         gpu = gpu_info[key_gpu]
         print('%s: (temp: %.1f°C, util: %d%%)    ' % (key_gpu, gpu['temperature'], gpu['gpu_utilization']), end='')
+    print()
+
+
+def print_memory_info(memory_info):
+    print('MEM  -', end='')
+    for i, key in enumerate(list(memory_info.keys())):
+        print('  %s: %.1fGB' % (key, memory_info[key]), end='')
     print()
 
 
@@ -68,12 +67,15 @@ def main(args):
 
         gpu_info = um.get_gpu_info()
         print_gpu_info(gpu_info)
-        # memory_info = um.get_memory_info()
+        
+        memory_info = um.get_memory_info()
+        print_memory_info(memory_info)
 
         # log_wandb(cpu_info, 'cpu_info')
         # log_wandb(gpu_info, 'gpu_info')
         # log_wandb(memory_info, 'memory_info')
 
+        print('---------------')
         time.sleep(args.interval)
 
 
