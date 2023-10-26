@@ -12,7 +12,7 @@ from config.configs import EasyConfig
 def parse_args():
     parser = argparse.ArgumentParser(prog='system_monitor')
     parser.add_argument('--config', default='config/default_config.yaml', type=str)
-    parser.add_argument('--interval', default=1.0, type=float)
+    parser.add_argument('--interval', default=5.0, type=float)
     parser.add_argument('--verbose', action='store_true')
     args = parser.parse_args()
     return args
@@ -96,8 +96,8 @@ def log_wandb(wandb_logger, dict_info):
             'gpu_info/'+str(key_gpu)+'.gpu_utilization': gpu['gpu_utilization'],
         })
     
+    # log MEMORY info
     for i, key in enumerate(list(memory_info.keys())):
-        # print('  %s: %.1fGB' % (key, memory_info[key]), end='')
         wandb_logger.log({
             'memory_info/'+str(key): memory_info[key],
         })
@@ -113,20 +113,20 @@ def main(args, cfg):
 
     print('Initializing wand...')
     wandb_logger = init_wandb_logger(cfg, sys_info)
+    print('---------------')
 
     while True:
-        cpu_info = um.get_cpu_info(args.interval)
-        print_cpu_info(cpu_info)
-
+        cpu_info = um.get_cpu_info()
         system_temp_info = um.get_system_temperature_info()
-        print_system_temp_info(system_temp_info)
-
         gpu_info = um.get_gpu_info()
-        print_gpu_info(gpu_info)
-
         memory_info = um.get_memory_info()
-        print_memory_info(memory_info)
 
+        date_time_now = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+        print(date_time_now)
+        print_cpu_info(cpu_info)
+        print_system_temp_info(system_temp_info)
+        print_gpu_info(gpu_info)
+        print_memory_info(memory_info)
 
         dict_info = {
             'sys_info': sys_info,
