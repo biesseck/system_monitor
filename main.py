@@ -85,7 +85,7 @@ def log_wandb(wandb_logger, dict_info):
     for i, key in enumerate(list(system_temp_info.keys())):
         for j, item in enumerate(system_temp_info[key]):
             wandb_logger.log({
-                'system_temp_info/'+str(key)+'.'+str(item.label): item.current,
+                'system_temp_info/'+str(key)+'.'+str(j)+'.'+str(item.label): item.current,
             })
     
     # log GPU info
