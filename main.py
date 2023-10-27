@@ -14,6 +14,7 @@ def parse_args():
     parser.add_argument('--config', default='config/default_config.yaml', type=str)
     parser.add_argument('--interval', default=5.0, type=float)
     parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--no-wandb', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -111,9 +112,10 @@ def main(args, cfg):
     um.load_necessary_modules(sys_info, verbose=True)
     print('---------------')
 
-    print('Initializing wand...')
-    wandb_logger = init_wandb_logger(cfg, sys_info)
-    print('---------------')
+    if not args.no_wandb:
+        print('Initializing wand...')
+        wandb_logger = init_wandb_logger(cfg, sys_info)
+        print('---------------')
 
     while True:
         cpu_info = um.get_cpu_info()
@@ -135,7 +137,8 @@ def main(args, cfg):
             'gpu_info': gpu_info,
             'memory_info': memory_info
         }
-        log_wandb(wandb_logger, dict_info)
+        if not args.no_wandb:
+            log_wandb(wandb_logger, dict_info)
 
         print('---------------')
         time.sleep(args.interval)

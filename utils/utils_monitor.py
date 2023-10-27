@@ -6,22 +6,33 @@ from nvitop import Device
 import subprocess
 
 
-ubuntu_modules = ['drivetemp']    # tested on Ubuntu 22.04 LTS
+ubuntu_modules = ['drivetemp']    # tested on Ubuntu 20.04 LTS
+
+
+def run_system_command(cmd):
+    p = subprocess.run(cmd.split(' '), capture_output=True)
+    return p
 
 def load_necessary_modules(system_info, verbose=True):
     sysname = system_info['sysname']
     if 'Linux' in sysname:
-        if verbose:
-            print('Loading necessary Linux modules...')
         for ubuntu_module in ubuntu_modules:
-            cmd = f'sudo modprobe -v {ubuntu_module}'
-            if verbose:
-                print(cmd)
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-            (output, err) = p.communicate()
-            p_status = p.wait()
-            if p_status != 0:
-                raise Exception(f'Error when loading module \'{ubuntu_module}\'')
+            cmd = f'lsmod | grep {ubuntu_module}'   # check if module exists in system
+            p = run_system_command(cmd)
+
+            if p.returncode == 0:
+                if verbose:
+                    print('Loading necessary Linux modules...')
+                cmd = f'sudo modprobe -v {ubuntu_module}'   # load kernel module
+                if verbose:
+                    print(cmd)
+
+                p = run_system_command(cmd)
+                if p.returncode != 0:
+                    raise Exception(f'Error when loading module \'{ubuntu_module}\'. returncode={p.returncode}, stdout=\'{p.stdout.decode()}\', stderr=\'{p.stderr.decode()}\'')
+
+            else:
+                print(f'Warning: module \'{ubuntu_module}\' not found.')
     else:
         raise Exception(f'Sorry, system_monitor is not implemented for the system \'{sysname}\' yet!')
 
