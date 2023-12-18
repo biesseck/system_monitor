@@ -13,6 +13,7 @@ def parse_args():
     parser = argparse.ArgumentParser(prog='system_monitor')
     parser.add_argument('--config', default='config/default_config.yaml', type=str)
     parser.add_argument('--interval', default=5.0, type=float)
+    parser.add_argument('--log_dir', default='logs', type=str)
     parser.add_argument('--verbose', action='store_true')
     parser.add_argument('--use-wandb', action='store_true')
     args = parser.parse_args()
@@ -74,7 +75,7 @@ def init_wandb_logger(cfg, sys_info):
 
 def log_wandb(wandb_logger, dict_info):
     sys_info, cpu_info, system_temp_info, gpu_info, memory_info = \
-        dict_info['sys_info'], dict_info['cpu_info'], dict_info['system_temp_info'], dict_info['gpu_info'], dict_info['memory_info'], 
+        dict_info['sys_info'], dict_info['cpu_info'], dict_info['system_temp_info'], dict_info['gpu_info'], dict_info['memory_info']
 
     # log CPU info
     for i, key in enumerate(list(cpu_info.keys())):
@@ -104,6 +105,67 @@ def log_wandb(wandb_logger, dict_info):
         })
 
 
+def log_generic_dict_text_file(args, sys_info, log_file_name='system_monitor.log', end='---------------'):
+    current_file_dir = os.path.dirname(os.path.abspath(__file__))
+    log_file_path = os.path.join(current_file_dir, args.log_dir, log_file_name)
+    with open(log_file_path, mode='a') as file:
+        file.write('\n\n')
+        for i, key in enumerate(list(sys_info.keys())):
+            file.write(f'sys_info[\'{key}\']: {sys_info[key]}' + '\n')
+            file.flush()
+        if end != '':
+            file.write(end + '\n')
+        file.flush()
+
+
+def log_text_file(date_time_now, args, dict_info, log_file_name='system_monitor.log'):
+    sys_info, cpu_info, system_temp_info, gpu_info, memory_info = \
+        dict_info['sys_info'], dict_info['cpu_info'], dict_info['system_temp_info'], dict_info['gpu_info'], dict_info['memory_info']
+
+    current_file_dir = os.path.dirname(os.path.abspath(__file__))
+    log_file_path = os.path.join(current_file_dir, args.log_dir, log_file_name)
+    with open(log_file_path, mode='a') as file:
+        file.write(date_time_now + '\n')
+        file.flush()
+
+        # log CPU info
+        file.write('CPU  -')
+        for i, key in enumerate(list(cpu_info.keys())):
+            file.write(f'  {key}: {cpu_info[key]};')
+            file.flush()
+        file.write('\n')
+        file.flush()
+
+        # log TEMPERATURES info
+        file.write('TEMPS  -')
+        for i, key in enumerate(list(system_temp_info.keys())):
+            for j, item in enumerate(system_temp_info[key]):
+                file.write(f'  {key}.{item.label}: {item.current};')
+                file.flush()
+            file.write('\n')
+            file.flush()
+
+        # log GPU info
+        for i, key_gpu in enumerate(list(gpu_info.keys())):
+            gpu = gpu_info[key_gpu]
+            file.write('%s: (temp: %.1f°C, util: %d%%)    ' % (key_gpu, gpu['temperature'], gpu['gpu_utilization']))
+            file.flush()
+        file.write('\n')
+        file.flush()
+
+        # log MEMORY info
+        file.write('MEM  -')
+        for i, key in enumerate(list(memory_info.keys())):
+            file.write('  %s: %.1fGB' % (key, memory_info[key]))
+            file.flush()
+        file.write('\n')
+        file.flush()
+
+        file.write('---------------' + '\n')
+        file.flush()
+
+    
+
 
 def main(args, cfg):
     sys_info = um.get_kernel_info()
@@ -111,6 +173,9 @@ def main(args, cfg):
 
     um.load_necessary_modules(sys_info, verbose=args.verbose)
     print('---------------')
+
+    log_file_name = 'system_monitor.log'
+    log_generic_dict_text_file(args, sys_info, log_file_name)
 
     if args.use_wandb:
         print('Initializing wand...')
@@ -137,6 +202,9 @@ def main(args, cfg):
             'gpu_info': gpu_info,
             'memory_info': memory_info
         }
+
+        log_text_file(date_time_now, args, dict_info, log_file_name)
+
         if args.use_wandb:
             log_wandb(wandb_logger, dict_info)
 
