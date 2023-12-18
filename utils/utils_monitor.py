@@ -16,23 +16,20 @@ def run_system_command(cmd):
 def load_necessary_modules(system_info, verbose=True):
     sysname = system_info['sysname']
     if 'Linux' in sysname:
+        print('Attempting to load necessary Linux modules:', ubuntu_modules)
         for ubuntu_module in ubuntu_modules:
-            cmd = f'lsmod | grep {ubuntu_module}'   # check if module exists in system
+            cmd = f'sudo modprobe -v {ubuntu_module}'   # load kernel module
+            if verbose:
+                print(cmd)
             p = run_system_command(cmd)
+            # print('p.returncode:', p.returncode)
 
             if p.returncode == 0:
-                if verbose:
-                    print('Loading necessary Linux modules...')
-                cmd = f'sudo modprobe -v {ubuntu_module}'   # load kernel module
-                if verbose:
-                    print(cmd)
-
-                p = run_system_command(cmd)
-                if p.returncode != 0:
-                    raise Exception(f'Error when loading module \'{ubuntu_module}\'. returncode={p.returncode}, stdout=\'{p.stdout.decode()}\', stderr=\'{p.stderr.decode()}\'')
-
+                print(f'    Module \'{ubuntu_module}\' successfully loaded')
             else:
-                print(f'Warning: module \'{ubuntu_module}\' not found.')
+                print(f'    Warning: module \'{ubuntu_module}\' not found.')
+                if verbose:
+                    print(f'    returncode={p.returncode}, stderr=\'{p.stderr.decode().strip()}\', stdout=\'{p.stdout.decode().strip()}\'')
     else:
         raise Exception(f'Sorry, system_monitor is not implemented for the system \'{sysname}\' yet!')
 
