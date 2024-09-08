@@ -12,7 +12,7 @@ from config.configs import EasyConfig
 def parse_args():
     parser = argparse.ArgumentParser(prog='system_monitor')
     parser.add_argument('--config', default='config/default_config.yaml', type=str)
-    parser.add_argument('--interval', default=5.0, type=float)
+    parser.add_argument('--interval', default=1.0, type=float)
     parser.add_argument('--log_dir', default='logs', type=str)
     parser.add_argument('--verbose', action='store_true')
     parser.add_argument('--use-wandb', action='store_true')
@@ -57,12 +57,11 @@ def print_memory_info(memory_info):
     print()
 
 
-def init_wandb_logger(cfg, sys_info):
+def init_wandb_logger(cfg, sys_info, run_name=''):
     wandb_logger = None
     if cfg.wandb.using_wandb:
         wandb.login(key=cfg.wandb.api_key)
         project_name = sys_info['nodename'] + cfg.wandb.project if cfg.wandb.project.startswith('_') else sys_info['nodename'] + '_' + cfg.wandb.project
-        run_name = 'start_' + datetime.now().strftime("%Y-%m-%d_%H:%M")
         wandb_logger = wandb.init(
                 entity = cfg.wandb.entity, 
                 project = project_name,
@@ -174,12 +173,13 @@ def main(args, cfg):
     um.load_necessary_modules(sys_info, verbose=args.verbose)
     print('---------------')
 
-    log_file_name = 'system_monitor.log'
+    run_name = 'system_monitor_' + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    log_file_name = run_name + '.log'
     log_generic_dict_text_file(args, sys_info, log_file_name)
 
     if args.use_wandb:
         print('Initializing wand...')
-        wandb_logger = init_wandb_logger(cfg, sys_info)
+        wandb_logger = init_wandb_logger(cfg, sys_info, run_name)
         print('---------------')
 
     while True:
